@@ -74,7 +74,7 @@ class Talkmore:
 			raise MyException("couldn't send SMS to " + number_list + ". status " + str(response.status))
 		m = re.search('.*Du har sendt +(.*) +SMS hittil i dag.*', content)
 #		print content
-		print "Sent SMS(es): " + m.group(1)
+		print "Sent SMS(es) today: " + m.group(1)
 
 	def logout(self):
 		headers = {'Cookie' : self.cookie }
