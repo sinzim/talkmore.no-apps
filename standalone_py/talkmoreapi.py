@@ -36,7 +36,9 @@ class Talkmore:
 	def update_balance(self):
 		if not self.is_logged_in():
 			raise MyException("Must be logged in to parse balance")
-		self.balance = self.parse_balance_page('https://www.talkmore.no/talkmore3/servlet/SubscriptionUsage')
+                #FIXME: The balance parsing seems to be outdated, needs work
+                self.balance = -1
+                #self.balance = self.parse_balance_page('https://www.talkmore.no/talkmore3/servlet/SubscriptionUsage')
 
 	def parse_balance_page(self, url):
 		h = httplib2.Http(".cache")
