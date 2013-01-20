@@ -67,13 +67,15 @@ class Talkmore:
 	    # FIXME check numbers (must be norwegian)
 		number_list = ';'.join(to_numbers)
 		data = {'list':number_list, 'message1':message}
+		#Support for norwegian characters
+		data["message1"] = data["message1"].encode('iso-8859-1')
 		headers = {'Content-type': 'application/x-www-form-urlencoded', 'Cookie' : self.cookie}
 		h = httplib2.Http(".cache")
-		response, content = h.request('https://www.talkmore.no/talkmore3/servlet/SendSmsFromSelfcare', 'POST', headers=headers, body=urlencode(data))
+		response, content = h.request('https://www.talkmore.no/talkmore3/servlet/SendSmsFromSelfcare', 
+									'POST', headers=headers, body=urlencode(data))
 		if response.status !=  200:
 			raise MyException("couldn't send SMS to " + number_list + ". status " + str(response.status))
 		m = re.search('.*Du har sendt +(.*) +SMS hittil i dag.*', content)
-#		print content
 		print "Sent SMS(es) today: " + m.group(1)
 
 	def logout(self):
