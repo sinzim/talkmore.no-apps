@@ -3,6 +3,7 @@
 # requires python-wxgtk2.8 on Debian/Ubuntu
 import httplib2
 
+#Python3 workaround
 try:
     from urllib.parse import urlencode
 except ImportError:
@@ -19,66 +20,73 @@ class MyException(Exception):
         return repr(self.value)
 
 class Talkmore:
-    user=None
-    cookie=None
-    balance=None
+    user = None
+    cookie = None
+    balance = None
 
     def login(self, login, pwd):
         data = {'username':login, 'password':pwd}
         headers = {'Content-type': 'application/x-www-form-urlencoded'}
         h = httplib2.Http(".cache")
-        response, content = h.request('https://www.talkmore.no/talkmore3/servlet/Login', 'POST', headers=headers, body=urlencode(data))
+        response, content = (
+                h.request('https://www.talkmore.no/talkmore3/servlet/Login', 
+                'POST', headers=headers, body=urlencode(data)))
         self.cookie = response['set-cookie']
 
         self.update_balance()
         if self.balance is None:
-                self.cookie = None
-                raise MyException("Couldn't log in and read balance")
+            self.cookie = None
+            raise MyException("Couldn't log in and read balance")
         else:
-                self.user = login
+            self.user = login
 
     def update_balance(self):
         if not self.is_logged_in():
-                raise MyException("Must be logged in to parse balance")
+            raise MyException("Must be logged in to parse balance")
         #FIXME: The balance parsing seems to be outdated, needs work
         self.balance = -1
         #self.balance = self.parse_balance_page('https://www.talkmore.no/talkmore3/servlet/SubscriptionUsage')
 
     def parse_balance_page(self, url):
-            h = httplib2.Http(".cache")
-            headers = {'Cookie' : self.cookie }
-            response, content = h.request(url, 'GET', headers=headers)
-            m = re.search('.*Ringesaldo:.* &nbsp;(.*)  kroner.*', content)
-            if response.status !=  200:
-                    raise MyException("couldn't open " + url + " status " + str(response.status))
-            if m is None:
-                    return None
-            return m.group(1)
+        h = httplib2.Http(".cache")
+        headers = {'Cookie' : self.cookie }
+        response, content = h.request(url, 'GET', headers=headers)
+        m = re.search('.*Ringesaldo:.* &nbsp;(.*)  kroner.*', content)
+        if response.status !=  200:
+            raise MyException("couldn't open " 
+                    + url + " status " + str(response.status))
+        if m is None:
+            return None
+        return m.group(1)
 
     def is_logged_in(self):
-            return self.cookie is not None
+        return self.cookie is not None
 
     def get_balance(self):
-            self.update_balance()
-            return self.balance
+        self.update_balance()
+        return self.balance
 
     def send_sms(self, to_numbers, message):
-        '''We support sending messages to multiple numbers. The first parameter is an array of Strings representing norwegian numbers.
-           The second parameter should be the message, max 1600 characters (dixit talkmore web interface, I haven't tried it'''
+        '''We support sending messages to multiple numbers. The first parameter
+        is an array of Strings representing norwegian numbers.
+        The second parameter should be the message, max 1600 characters (dixit 
+        talkmore web interface, I haven't tried it'''
         if not self.is_logged_in():
-                raise MyException("Must be logged int to send SMS")
+            raise MyException("Must be logged int to send SMS")
 
-    # FIXME check numbers (must be norwegian)
+        #FIXME check numbers (must be norwegian)
         number_list = ';'.join(to_numbers)
         data = {'list':number_list, 'message1':message}
         #Support for norwegian characters
         data["message1"] = data["message1"].encode('iso-8859-1')
-        headers = {'Content-type': 'application/x-www-form-urlencoded', 'Cookie' : self.cookie}
+        headers = {'Content-type': 'application/x-www-form-urlencoded', 
+                'Cookie' : self.cookie}
         h = httplib2.Http(".cache")
         response, content = h.request('https://www.talkmore.no/talkmore3/servlet/SendSmsFromSelfcare', 
-                                                                'POST', headers=headers, body=urlencode(data))
+            'POST', headers=headers, body=urlencode(data))
         if response.status !=  200:
-                raise MyException("couldn't send SMS to " + number_list + ". status " + str(response.status))
+            raise MyException("couldn't send SMS to " + number_list 
+                    + ". status " + str(response.status))
         m = re.search('.*Du har sendt +(.*) +SMS hittil i dag.*', str(content))
         print("Sent SMS(es) today: " + m.group(1))
 
@@ -92,10 +100,10 @@ class Talkmore:
 def get_profile_dir():
     profile_dir = os.path.expanduser("~/.talkmore/")
     if not os.path.exists(profile_dir):
-            os.mkdir(profile_dir)
-            # FIXME error check
+        os.mkdir(profile_dir)
+        # FIXME error check
     if not os.path.exists(profile_dir):
-            raise MyException("couldn't find/create " + str(profile_dir))
+        raise MyException("couldn't find/create " + str(profile_dir))
     return profile_dir
 
 def get_credentials():
@@ -103,15 +111,15 @@ def get_credentials():
     profile_dir = get_profile_dir()
     credentials_file = os.path.join(profile_dir, "credentials")
     if not os.path.exists(credentials_file):
-            return None
+        return None
     with open(credentials_file, "r") as f:
-            login = f.readline().rstrip('\n')
-            password = base64.b64decode(f.readline().rstrip('\n'))
-            return login, password
+        login = f.readline().rstrip('\n')
+        password = base64.b64decode(f.readline().rstrip('\n'))
+        return login, password
 
 def save_credentials(login, password):
     'Save credentials into home file'
     profile_dir = get_profile_dir()
     with open(os.path.join(profile_dir, "credentials"), "w") as f:
-            f.write(login + "\n")
-            f.write(base64.b64encode(password) + "\n")
+        f.write(login + "\n")
+        f.write(base64.b64encode(password) + "\n")
